@@ -2,9 +2,9 @@
   "name": "m3u8-scraper",
   "version": "1.0.0",
   "description": "Extrae URL M3U8 de páginas con Puppeteer",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -13,4 +13,3 @@
   "author": "SpayNext",
   "license": "MIT"
 }
-
