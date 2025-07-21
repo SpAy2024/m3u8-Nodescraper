@@ -1,40 +1,49 @@
+const express = require('express');
 const puppeteer = require('puppeteer');
 
-async function getM3U8(url) {
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-  let m3u8Url = null;
-
-  page.on('request', request => {
-    const reqUrl = request.url();
-    if (reqUrl.includes('.m3u8')) {
-      m3u8Url = reqUrl;
-    }
-  });
+app.get('/getm3u8', async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).json({ error: 'URL requerida' });
 
   try {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    const page = await browser.newPage();
+    let m3u8Url = null;
+
+    page.on('request', request => {
+      const reqUrl = request.url();
+      if (reqUrl.includes('.m3u8')) {
+        m3u8Url = reqUrl;
+      }
+    });
+
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
     await page.waitForTimeout(5000);
-  } catch (e) {
-    console.error('Error cargando la página:', e.message);
-  }
+    await browser.close();
 
-  await browser.close();
-  return m3u8Url;
-}
+    if (m3u8Url) {
+      res.json({ m3u8: m3u8Url });
+    } else {
+      res.json({ m3u8: null, message: 'No se encontró archivo .m3u8' });
+    }
 
-const inputUrl = process.argv[2];
-
-if (!inputUrl) {
-  console.error('Por favor, pasa una URL como argumento');
-  process.exit(1);
-}
-
-getM3U8(inputUrl).then(m3u8 => {
-  if (m3u8) {
-    console.log('URL M3U8 encontrada:', m3u8);
-  } else {
-    console.log('No se encontró URL M3U8.');
+  } catch (err) {
+    res.status(500).json({ error: 'Error procesando la URL', details: err.message });
   }
 });
+
+app.get('/', (req, res) => {
+  res.send('Servicio M3U8 Scraper activo.');
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor activo en el puerto ${PORT}`);
+});
+
